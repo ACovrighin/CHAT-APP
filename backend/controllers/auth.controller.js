@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import User from '../models/user.model.js';
 
 export const signup = async (req, res) => {
@@ -14,7 +15,9 @@ export const signup = async (req, res) => {
         }
 
         // HASH PASSWORD HERE
-        // const hashedPassword = await bcrypt.hash(password, 12);
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
         // https://avatar-placeholder.iran.liara.run/
 
         const boyProfilePic = `https://avatar.iran.liara.run/public/boy?username=${username}`
@@ -23,19 +26,24 @@ export const signup = async (req, res) => {
         const newUser = new User({
             fullName,
             username,
-            password,
+            password:hashedPassword,
             gender,
             profilePic: gender === "male" ? boyProfilePic : girlProfilePic
         });
 
-        await newUser.save();
+        if(newUser) {
+            // Generate JWT token
+            await newUser.save();
 
         res.status(201).json({
             _id: newUser._id,
             fullName: newUser.fullName,
             username:newUser.username,
-            profilePic:newUser.profilePic
+            profilePic:newUser.profilePic,
         });
+        } else{
+            res.status(400).json({error: "invalid User Data"});
+        }
 
     } catch (error) {
         console.log("Error in signup cotroller", error.message);
